@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Translation Issue</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        button { padding: 8px 12px; margin: 5px; cursor: pointer; }
+        .result { background: #f5f5f5; padding: 10px; margin: 10px 0; border-radius: 3px; }
+        .error { background: #ffebee; color: #c62828; }
+    </style>
+</head>
+<body>
+    <h1>Debug Translation Switching Issue</h1>
+    
+    <div class="section">
+        <h3>1. Clear All Data (Start Fresh)</h3>
+        <button onclick="clearAllData()">Clear All Todo Data</button>
+        <div id="clearResult" class="result"></div>
+    </div>
+
+    <div class="section">
+        <h3>2. Create Test Todo</h3>
+        <button onclick="createTestTodo()">Create Test Todo with Translation</button>
+        <div id="createResult" class="result"></div>
+    </div>
+
+    <div class="section">
+        <h3>3. Check Data Structure</h3>
+        <button onclick="checkDataStructure()">Check Current Data</button>
+        <div id="dataResult" class="result"></div>
+    </div>
+
+    <div class="section">
+        <h3>4. Test Language Switching</h3>
+        <button onclick="testLanguageSwitch()">Switch to Spanish</button>
+        <button onclick="testSwitchToOriginal()">Switch to Original</button>
+        <div id="switchResult" class="result"></div>
+    </div>
+
+    <script>
+        let testUserId = 'debug_user_123';
+        let testTodoId = 'debug_todo_123';
+
+        function clearAllData() {
+            // Clear all todo-related localStorage
+            const keys = Object.keys(localStorage);
+            keys.forEach(key => {
+                if (key.includes('todo_')) {
+                    localStorage.removeItem(key);
+                }
+            });
+            document.getElementById('clearResult').innerHTML = 'All todo data cleared!';
+        }
+
+        function createTestTodo() {
+            // Create a test todo with translation
+            const testTodo = {
+                id: testTodoId,
+                userId: testUserId,
+                title: 'Learn React',
+                description: 'Build a complete React application',
+                completed: false,
+                originalLanguage: 'en',
+                originalTitle: 'Learn React',
+                originalDescription: 'Build a complete React application',
+                currentLanguage: 'en',
+                translations: {
+                    spanish: {
+                        title: 'Aprender React',
+                        description: 'Construir una aplicación React completa'
+                    },
+                    french: {
+                        title: 'Apprendre React',
+                        description: 'Construire une application React complète'
+                    }
+                },
+                subtasks: [],
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+
+            // Save to localStorage
+            const todos = [testTodo];
+            localStorage.setItem(`todo_items_${testUserId}`, JSON.stringify(todos));
+            
+            document.getElementById('createResult').innerHTML = 'Test todo created with Spanish and French translations!';
+        }
+
+        function checkDataStructure() {
+            const stored = localStorage.getItem(`todo_items_${testUserId}`);
+            if (!stored) {
+                document.getElementById('dataResult').innerHTML = 'No data found. Create test todo first.';
+                return;
+            }
+
+            try {
+                const todos = JSON.parse(stored);
+                const todo = todos.find(t => t.id === testTodoId);
+                
+                if (!todo) {
+                    document.getElementById('dataResult').innerHTML = 'Test todo not found!';
+                    return;
+                }
+
+                document.getElementById('dataResult').innerHTML = `
+                    <strong>Current Todo Data:</strong><br>
+                    Title: ${todo.title}<br>
+                    Description: ${todo.description}<br>
+                    Current Language: ${todo.currentLanguage}<br>
+                    Original Title: ${todo.originalTitle}<br>
+                    Original Description: ${todo.originalDescription}<br>
+                    Available Translations: ${Object.keys(todo.translations).join(', ')}<br>
+                    <br>
+                    <strong>Spanish Translation:</strong><br>
+                    Title: ${todo.translations.spanish?.title || 'NOT FOUND'}<br>
+                    Description: ${todo.translations.spanish?.description || 'NOT FOUND'}<br>
+                    <br>
+                    <strong>Raw JSON:</strong><br>
+                    <pre style="font-size: 10px; overflow: auto;">${JSON.stringify(todo, null, 2)}</pre>
+                `;
+            } catch (error) {
+                document.getElementById('dataResult').innerHTML = `Error parsing data: ${error.message}`;
+            }
+        }
+
+        function testLanguageSwitch() {
+            const stored = localStorage.getItem(`todo_items_${testUserId}`);
+            if (!stored) {
+                document.getElementById('switchResult').innerHTML = 'No data found. Create test todo first.';
+                return;
+            }
+
+            try {
+                const todos = JSON.parse(stored);
+                const todoIndex = todos.findIndex(t => t.id === testTodoId);
+                
+                if (todoIndex === -1) {
+                    document.getElementById('switchResult').innerHTML = 'Test todo not found!';
+                    return;
+                }
+
+                const todo = todos[todoIndex];
+                const translation = todo.translations['spanish'];
+                
+                if (!translation) {
+                    document.getElementById('switchResult').innerHTML = 'Spanish translation not found!';
+                    return;
+                }
+
+                // Update the todo
+                todos[todoIndex] = {
+                    ...todo,
+                    title: translation.title,
+                    description: translation.description || '',
+                    currentLanguage: 'spanish'
+                };
+
+                // Save back to localStorage
+                localStorage.setItem(`todo_items_${testUserId}`, JSON.stringify(todos));
+
+                document.getElementById('switchResult').innerHTML = `
+                    Successfully switched to Spanish!<br>
+                    New Title: ${todos[todoIndex].title}<br>
+                    New Description: ${todos[todoIndex].description}<br>
+                    Current Language: ${todos[todoIndex].currentLanguage}
+                `;
+            } catch (error) {
+                document.getElementById('switchResult').innerHTML = `Error: ${error.message}`;
+            }
+        }
+
+        function testSwitchToOriginal() {
+            const stored = localStorage.getItem(`todo_items_${testUserId}`);
+            if (!stored) {
+                document.getElementById('switchResult').innerHTML = 'No data found. Create test todo first.';
+                return;
+            }
+
+            try {
+                const todos = JSON.parse(stored);
+                const todoIndex = todos.findIndex(t => t.id === testTodoId);
+                
+                if (todoIndex === -1) {
+                    document.getElementById('switchResult').innerHTML = 'Test todo not found!';
+                    return;
+                }
+
+                const todo = todos[todoIndex];
+
+                // Update the todo back to original
+                todos[todoIndex] = {
+                    ...todo,
+                    title: todo.originalTitle,
+                    description: todo.originalDescription || '',
+                    currentLanguage: todo.originalLanguage
+                };
+
+                // Save back to localStorage
+                localStorage.setItem(`todo_items_${testUserId}`, JSON.stringify(todos));
+
+                document.getElementById('switchResult').innerHTML = `
+                    Successfully switched to original!<br>
+                    New Title: ${todos[todoIndex].title}<br>
+                    New Description: ${todos[todoIndex].description}<br>
+                    Current Language: ${todos[todoIndex].currentLanguage}
+                `;
+            } catch (error) {
+                document.getElementById('switchResult').innerHTML = `Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

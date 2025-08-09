@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-react-app:*)",
+      "Bash(npm create:*)",
+      "Bash(move todo_app_prompt.md ../todo_app_prompt.md)",
+      "Bash(mv:*)",
+      "Bash(npm install)",
+      "Bash(mkdir:*)",
+      "Bash(npm run build:*)"
+    ],
+    "deny": []
+  }
+}

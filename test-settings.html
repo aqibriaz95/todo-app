@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Settings</title>
+</head>
+<body>
+    <h1>Test Local Storage</h1>
+    <button onclick="setTestKey()">Set Test API Key</button>
+    <button onclick="getTestKey()">Get Test API Key</button>
+    <button onclick="clearTestKey()">Clear Test API Key</button>
+    <div id="result"></div>
+
+    <script>
+        function setTestKey() {
+            localStorage.setItem('openai_api_key', 'sk-test123');
+            document.getElementById('result').innerHTML = 'API key set!';
+        }
+
+        function getTestKey() {
+            const key = localStorage.getItem('openai_api_key');
+            document.getElementById('result').innerHTML = 'API key: ' + (key || 'NOT SET');
+        }
+
+        function clearTestKey() {
+            localStorage.removeItem('openai_api_key');
+            document.getElementById('result').innerHTML = 'API key cleared!';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test OpenAI API Integration</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ccc; border-radius: 8px; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        input { padding: 8px; margin: 5px; width: 300px; }
+        .result { margin: 10px 0; padding: 10px; background: #f5f5f5; border-radius: 4px; white-space: pre-wrap; }
+        .error { background: #ffebee; color: #c62828; }
+        .success { background: #e8f5e8; color: #2e7d32; }
+    </style>
+</head>
+<body>
+    <h1>OpenAI API Integration Test</h1>
+    
+    <div class="test-section">
+        <h2>API Key Setup</h2>
+        <input type="password" id="apiKey" placeholder="Enter your OpenAI API key (sk-...)">
+        <button onclick="setApiKey()">Set API Key</button>
+        <div id="keyStatus" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Translation Test</h2>
+        <input type="text" id="textToTranslate" placeholder="Text to translate" value="Hello, world!">
+        <input type="text" id="targetLang" placeholder="Target language" value="Spanish">
+        <button onclick="testTranslation()">Test Translation</button>
+        <div id="translationResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Subtask Generation Test</h2>
+        <input type="text" id="taskTitle" placeholder="Task title" value="Learn React">
+        <input type="text" id="taskDesc" placeholder="Task description (optional)" value="Build a complete React application">
+        <input type="text" id="taskLang" placeholder="Target language" value="English">
+        <button onclick="testSubtasks()">Test Subtask Generation</button>
+        <div id="subtaskResult" class="result"></div>
+    </div>
+
+    <script>
+        let currentApiKey = '';
+
+        function setApiKey() {
+            currentApiKey = document.getElementById('apiKey').value;
+            const status = document.getElementById('keyStatus');
+            
+            if (!currentApiKey) {
+                status.innerHTML = 'Please enter an API key';
+                status.className = 'result error';
+                return;
+            }
+
+            if (!currentApiKey.startsWith('sk-')) {
+                status.innerHTML = 'Invalid API key format (should start with sk-)';
+                status.className = 'result error';
+                return;
+            }
+
+            status.innerHTML = 'API key set successfully!';
+            status.className = 'result success';
+        }
+
+        async function testTranslation() {
+            const result = document.getElementById('translationResult');
+            
+            if (!currentApiKey) {
+                result.innerHTML = 'Please set your API key first';
+                result.className = 'result error';
+                return;
+            }
+
+            const text = document.getElementById('textToTranslate').value;
+            const targetLang = document.getElementById('targetLang').value;
+
+            if (!text || !targetLang) {
+                result.innerHTML = 'Please enter both text and target language';
+                result.className = 'result error';
+                return;
+            }
+
+            result.innerHTML = 'Translating...';
+            result.className = 'result';
+
+            try {
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${currentApiKey}`,
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-4o-mini',
+                        messages: [
+                            {
+                                role: 'system',
+                                content: `You are a professional translator. Translate the following text to ${targetLang}. Return ONLY the translation without any additional text, explanations, or formatting.`
+                            },
+                            {
+                                role: 'user',
+                                content: text
+                            }
+                        ],
+                        max_tokens: 500,
+                        temperature: 0.3,
+                    }),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ error: { message: 'Unknown error' } }));
+                    throw new Error(`OpenAI API error: ${errorData.error?.message || response.statusText}`);
+                }
+
+                const data = await response.json();
+                const translation = data.choices[0]?.message?.content?.trim();
+
+                if (!translation) {
+                    throw new Error('No translation received');
+                }
+
+                result.innerHTML = `Original: ${text}\nTranslated (${targetLang}): ${translation}`;
+                result.className = 'result success';
+
+            } catch (error) {
+                result.innerHTML = `Translation failed: ${error.message}`;
+                result.className = 'result error';
+            }
+        }
+
+        async function testSubtasks() {
+            const result = document.getElementById('subtaskResult');
+            
+            if (!currentApiKey) {
+                result.innerHTML = 'Please set your API key first';
+                result.className = 'result error';
+                return;
+            }
+
+            const title = document.getElementById('taskTitle').value;
+            const desc = document.getElementById('taskDesc').value;
+            const targetLang = document.getElementById('taskLang').value || 'English';
+
+            if (!title) {
+                result.innerHTML = 'Please enter a task title';
+                result.className = 'result error';
+                return;
+            }
+
+            result.innerHTML = 'Generating subtasks...';
+            result.className = 'result';
+
+            try {
+                const prompt = `Break down the following task into 3-5 specific, actionable subtasks that would help complete the main task. Each subtask should be:
+- Clear and specific
+- Actionable (something you can actually do)
+- Independent (can be completed on its own)
+- Measurable (you'll know when it's done)
+
+Main Task: ${title}
+${desc ? `Description: ${desc}` : ''}
+
+Return your response as a JSON array of strings, with each string being a subtask title. Do not include any other text or formatting.
+
+Example format: ["Subtask 1", "Subtask 2", "Subtask 3"]`;
+
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${currentApiKey}`,
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-4o-mini',
+                        messages: [
+                            {
+                                role: 'system',
+                                content: 'You are a helpful assistant that breaks down tasks into actionable subtasks. Always respond with valid JSON array format.'
+                            },
+                            {
+                                role: 'user',
+                                content: prompt
+                            }
+                        ],
+                        max_tokens: 300,
+                        temperature: 0.7,
+                    }),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ error: { message: 'Unknown error' } }));
+                    throw new Error(`OpenAI API error: ${errorData.error?.message || response.statusText}`);
+                }
+
+                const data = await response.json();
+                const responseText = data.choices[0]?.message?.content?.trim();
+
+                if (!responseText) {
+                    throw new Error('No response received');
+                }
+
+                try {
+                    const subtasks = JSON.parse(responseText);
+                    
+                    if (!Array.isArray(subtasks)) {
+                        throw new Error('Response is not an array');
+                    }
+
+                    const validSubtasks = subtasks
+                        .filter(item => typeof item === 'string' && item.trim().length > 0)
+                        .map(item => item.trim());
+
+                    result.innerHTML = `Task: ${title}\nGenerated Subtasks:\n${validSubtasks.map((task, i) => `${i + 1}. ${task}`).join('\n')}`;
+                    result.className = 'result success';
+
+                } catch (parseError) {
+                    // Fallback parsing
+                    const lines = responseText
+                        .split('\n')
+                        .map(line => line.trim())
+                        .filter(line => line.length > 0 && !line.startsWith('{') && !line.startsWith('}'))
+                        .map(line => line.replace(/^[\-\*\d\.]+\s*/, ''))
+                        .map(line => line.replace(/^"|"$/g, ''))
+                        .filter(line => line.length > 3);
+
+                    if (lines.length > 0) {
+                        result.innerHTML = `Task: ${title}\nGenerated Subtasks (parsed):\n${lines.map((task, i) => `${i + 1}. ${task}`).join('\n')}`;
+                        result.className = 'result success';
+                    } else {
+                        result.innerHTML = `Raw response: ${responseText}\n\nCould not parse as JSON. Please check the format.`;
+                        result.className = 'result error';
+                    }
+                }
+
+            } catch (error) {
+                result.innerHTML = `Subtask generation failed: ${error.message}`;
+                result.className = 'result error';
+            }
+        }
+    </script>
+</body>
+</html>
